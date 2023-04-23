@@ -48,12 +48,24 @@ pbar = tqdm(total=len(klines))
 df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
 df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
 
-# Converte as strings de timestamp para objetos datetime
-for kline in klines:
-    timestamp = pd.to_datetime(kline[0], unit='ms')
-    close = float(kline[4])
-    df = df._append({'Data': timestamp, 'Close': close}, ignore_index=True)
-    pbar.update(1)
+def carrega_dados():
+    # inicializa data com uma lista vazia
+    data = []
+
+    try:
+        ...
+        # atualiza data com os dados carregados
+        data = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ms')
+        data = data[['timestamp', 'close']]
+        data.columns = ['Data', 'Close']
+        ...
+    
+    except Exception as e:
+        print("Nao foi possivel carregar os dados:", str(e))
+
+    # retorna a variável data, que agora foi atualizada com os dados corretos ou é uma lista vazia se ocorreu um erro
+    return data
       
 df = df[['timestamp', 'close']]
 df.columns = ['Data', 'Close']
