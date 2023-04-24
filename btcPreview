@@ -2,7 +2,6 @@
 
 import tensorflow as tf
 tf.config.run_functions_eagerly(True)
-tf.data.experimental.enable_debug_mode()
 
 import pandas as pd
 import numpy as np
@@ -15,66 +14,65 @@ from datetime import datetime, timedelta
 from tqdm import tqdm
 from tensorflow.keras.layers import Flatten
 
-
 # Definição dos parâmetros
 API_KEY = 'hruZgjj2PS9WCvNrT3scR726HlMLc0vnWWkLceUigMdbJECG2ay331Euh4qeDSjM'
 SECRET_KEY = 'ZReFgghppeiV6qQFwojT5EczFGjANLGOzkL7Q35j5P8hGopILGDnfY3queFSXfFO'
 PAIR = 'BTCUSDT'
 BATCH_SIZE = 32
-EPOCHS = 25
+EPOCHS = 20
 INTERVAL = Client.KLINE_INTERVAL_1HOUR  # intervalo de 1 HORA
-LSTM_WINDOW = 60 # janela de 60 dias para a LSTM
+LSTM_WINDOW = 30 # janela de 60 dias para a LSTM
 
-client = Client(API_KEY, SECRET_KEY)
+def fibonacci_levels(prices):
+    levels = []
+    for i in range(len(prices)):
+        if i == 0:
+            levels.append(prices[i])
+        elif i == 1:
+            levels.append(prices[i])
+        else:
+            diff = prices[i-1] - prices[i-2]
+            levels.append(prices[i-1] + 0.618 * diff)
+    return levels
 
+
+# Solicitação das datas de início e fim da amostragem
 inicio = input('Insira a data de inicio para amostragem (mm/dd/yyyy): ')
 fim = input('Insira a data de fim para amostragem (mm/dd/yyyy): ')
 
 # Converte as datas para objeto datetime
 inicio_dt = datetime.strptime(inicio, '%m/%d/%Y')
-inicio_ant = (inicio_dt - timedelta(days=20)).strftime('%m/%d/%Y')
 fim_dt = datetime.strptime(fim, '%m/%d/%Y')
 
 # Calcula a quantidade de dias da amostragem
 dias_amostra = (fim_dt - inicio_dt).days
 
+# Cria a conexão com a API da Binance
+client = Client(API_KEY, SECRET_KEY)
+
+from tqdm import tqdm
+
 # Faz a leitura dos dados do par BTCUSDT na Binance
 print("Carregando dados da API...")
-klines = client.get_historical_klines(PAIR, INTERVAL, inicio_ant, fim)
+klines = client.get_historical_klines(PAIR, INTERVAL, inicio, fim)
 
 # Cria a barra de progresso
 pbar = tqdm(total=len(klines))
 
-df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
+df = pd.DataFrame(columns=['timestamp', 'close'])
 df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-
-def carrega_dados():
-    # inicializa data com uma lista vazia
-    data = []
-
-    try:
-        ...
-        # atualiza data com os dados carregados
-        data = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
-        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ms')
-        data = data[['timestamp', 'close']]
-        data.columns = ['Data', 'Close']
-        ...
-    
-    except Exception as e:
-        print("Nao foi possivel carregar os dados:", str(e))
-
-    # retorna a variável data, que agora foi atualizada com os dados corretos ou é uma lista vazia se ocorreu um erro
-    return data
-      
 df = df[['timestamp', 'close']]
 df.columns = ['Data', 'Close']
 
+# Converte as strings de timestamp para objetos datetime
+for kline in klines:
+    timestamp = pd.to_datetime(kline[0], unit='ms')
+    close = float(kline[4])
+    df = df._append({'Data': timestamp, 'Close': close}, ignore_index=True)
+    pbar.update(1)
+
 # Fecha a barra de progresso
 pbar.close()
-
-# Imprime as primeiras linhas do objeto data
-print(data.head())
 
 # Cria um DataFrame do Pandas com os dados e renomeia as colunas
 df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_asset_volume', 'number_of_trades', 'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'])
